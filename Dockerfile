@@ -32,9 +32,10 @@ COPY cron/ cron/
 COPY student_private.pem .
 COPY instructor_public.pem .
 
-# Install cron job
+# Install cron job for the root user
 RUN chmod 0644 cron/2fa-cron && \
-    crontab cron/2fa-cron
+    sed -i 's/\r//' cron/2fa-cron && \
+    cat cron/2fa-cron | crontab -
 
 # Create volume directories
 RUN mkdir -p /data /cron && \
@@ -42,4 +43,4 @@ RUN mkdir -p /data /cron && \
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "cron && uvicorn app.main:app --host 0.0.0.0 --port 8080"]
+CMD ["sh", "-c", "cron -L 8 && uvicorn app.main:app --host 0.0.0.0 --port 8080"]

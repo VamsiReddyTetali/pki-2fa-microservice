@@ -1,15 +1,28 @@
-#!/usr/bin/env python3
+#!/usr/local/bin/python3
 import datetime
 import sys
-from app.totp_utils import generate_totp_code
+import os
 
-SEED_PATH = "/data/seed.txt"
+timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+with open("/cron/last_code.txt", "a") as f:
+    f.write(f"[{timestamp} UTC] Cron job started\n")
 
 try:
-    with open(SEED_PATH, "r") as f:
+    if not os.path.exists("/data/seed.txt"):
+        with open("/cron/last_code.txt", "a") as f:
+            f.write(f"[{timestamp} UTC] ERROR: Seed file not found at /data/seed.txt\n")
+        sys.exit(1)
+
+    with open("/data/seed.txt", "r") as f:
         hex_seed = f.read().strip()
+
+    from app.totp_utils import generate_totp_code
     code = generate_totp_code(hex_seed)
-    timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    print(f"{timestamp} 2FA Code: {code}")
+
+    with open("/cron/last_code.txt", "a") as f:
+        f.write(f"[{timestamp} UTC] 2FA Code: {code}\n")
+
 except Exception as e:
-    print(f"Error: {e}", file=sys.stderr)
+    with open("/cron/last_code.txt", "a") as f:
+        f.write(f"[{timestamp} UTC] ERROR: {str(e)}\n")
